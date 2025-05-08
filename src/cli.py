@@ -4,7 +4,7 @@ from .utils import print_formatted
 
 class OSPeekCLI:
     def __init__(self):
-        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.0.1")
+        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.0.2")
         self.parser.add_argument(
             "command",
             choices=["info", "version", "help"],
@@ -26,6 +26,8 @@ class OSPeekCLI:
         sys_info = SystemInfo()
         info = sys_info.get_system_info()
         print_formatted("System Information", info)
+        print_formatted("CPU Information", info["cpu"])
+        print_formatted("Memory Information", info["memory"])
 
     def show_version(self):
         from .__init__ import __version__
