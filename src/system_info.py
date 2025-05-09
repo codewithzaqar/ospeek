@@ -1,9 +1,10 @@
 import platform
 import psutil
 import datetime
+import sys
 
 class SystemInfo:
-    def get_system_info(self):
+    def get_system_info(self, verbose=False):
         return {
             "system": {
                 "OS": platform.system(),
@@ -25,6 +26,10 @@ class SystemInfo:
                 "Usage (%)": psutil.virtual_memory().percent,
             }
         }
+        if verbose:
+            info["system"]["Platform"] = platform.platform()
+            info["system"]["Python Version"] = sys.version.split()[0]
+        return info
     
     def get_disk_info(self):
         disk = psutil.disk_usage('/')
@@ -50,16 +55,20 @@ class SystemInfo:
                 })
         return result
     
-    def get_process_info(self):
+    def get_process_info(self, verbose=False):
         processes = []
-        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_info']):
+        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_info', 'status', 'username']):
             try:
-                processes.append({
+                proc_info = {
                     "PID": proc.info['pid'],
                     "Name": proc.info['name'],
                     "CPU (%)": proc.info['cpu_percent'],
                     "Memory (MB)": proc.info['memory_info'].rss / (1024**2),
-                })
+                }
+                if verbose:
+                    proc_info["Status"] = proc.info['status']
+                    proc_info["User"] = proc.info['username']
+                processes.append(proc_info)
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
         return sorted(processes, key=lambda x: x["CPU (%)"], reverse=True)[:10]
@@ -75,3 +84,17 @@ class SystemInfo:
             "Uptime": uptime_str,
             "Boot Time": boot_time.strftime("%Y-%m-%d %H:%M:%S")
         }
+    
+    def get_user_info(self, verbose=False):
+        users = []
+        for user in psutil.users():
+            user_info = {
+                "Username": user.name,
+                "Terminal": user.terminal or "N/A",
+                "Host": user.host or "localhost",
+                "Logic Time": datetime.datetime.fromtimestamp(user.started).strftime("%Y-%m-%d %H:%M:%S")
+            }
+            if verbose:
+                user_info["PID"] = user.pid if user.pid else "N/A"
+            users.append(user_info)
+        return users

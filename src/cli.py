@@ -4,10 +4,10 @@ from .utils import print_formatted, print_process_table, print_json
 
 class OSPeekCLI:
     def __init__(self):
-        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.0.6")
+        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.0.7")
         self.parser.add_argument(
             "command",
-            choices=["info", "disk", "network", "processes", "uptime", "version", "help"],
+            choices=["info", "disk", "network", "processes", "uptime", "users", "version", "help"],
             help="Command to execute",
             nargs="?",
             default="help",
@@ -17,27 +17,34 @@ class OSPeekCLI:
             action="store_true",
             help="Output results in JSON format"
         )
+        self.parser.add_argument(
+            "--verbose",
+            action="store_true",
+            help="Display additional details (for info, processes, users)"
+        )
 
     def run(self, args):
         args = self.parser.parse_args(args)
         if args.command == "info":
-            self.show_info(args.json)
+            self.show_info(args.json, args.verbose)
         elif args.command == "disk":
             self.show_disk(args.json)
         elif args.command == "network":
             self.show_network(args.json)
         elif args.command == "processes":
-            self.show_processes(args.json)
+            self.show_processes(args.json, args.verbose)
         elif args.command == "uptime":
             self.show_uptime(args.json)
+        elif args.command == "users":
+            self.show_users(args.json, args.verbose)
         elif args.command == "version":
             self.show_version(args.json)
         else:
             self.show_help()
 
-    def show_info(self, json_output):
+    def show_info(self, json_output, verbose):
         sys_info = SystemInfo()
-        info = sys_info.get_system_info()
+        info = sys_info.get_system_info(verbose)
         if json_output:
             print_json(info)
         else:
@@ -62,9 +69,9 @@ class OSPeekCLI:
             for interface in network_info:
                 print_formatted(f"Interface: {interface['Interface']}", interface)
 
-    def show_processes(self, json_output):
+    def show_processes(self, json_output, verbose):
         sys_info = SystemInfo()
-        process_info = sys_info.get_process_info()
+        process_info = sys_info.get_process_info(verbose)
         if json_output:
             print_json(process_info)
         else:
@@ -77,6 +84,15 @@ class OSPeekCLI:
             print_json(uptime_info)
         else:
             print_formatted("System Uptime", uptime_info)
+
+    def show_users(self, json_output, verbose):
+        sys_info = SystemInfo()
+        user_info = sys_info.get_user_info(verbose)
+        if json_output:
+            print_json(user_info)
+        else:
+            for user in user_info:
+                print_formatted(f"Username: {user['Username']}", user)
 
     def show_version(self, json_output):
         from .__init__ import __version__
