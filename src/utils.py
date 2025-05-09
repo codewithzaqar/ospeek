@@ -15,17 +15,20 @@ def print_formatted(title, data):
 def print_process_table(title, processes, verbose=False):
     print(f"\n{title}:")
     print("-" * 50)
-    if verbose:
-        header = f"{'PID':<10} {'Name':<20} {'CPU (%)':<10} {'Memory (MB)':<12} {'Status':<10} {'User':<15}"
+    if processes and "Status" in processes[0]:
+        print(f"{processes[0]['Status']}")
     else:
-        header = f"{'PID':<10} {'Name':<20} {'CPU (%)':<10} {'Memory (MB)':<12}"
-    print(header)
-    print("-" * 50)
-    for proc in processes:
         if verbose:
-            print(f"{proc['PID']:<10} {proc['Name'][:19]:<20} {proc['CPU (%)']:<10.2f} {proc['Memory (MB)']:<12.2f} {proc['Status']:<10} {proc['User'][:14]:<15}")
+            header = f"{'PID':<10} {'Name':<20} {'CPU (%)':<10} {'Memory (MB)':<12} {'Status':<10} {'User':<15}"
         else:
-            print(f"{proc['PID']:<10} {proc['Name'][:19]:<20} {proc['CPU (%)']:<10.2f} {proc['Memory (MB)']:<12.2f}")
+            header = f"{'PID':<10} {'Name':<20} {'CPU (%)':<10} {'Memory (MB)':<12}"
+        print(header)
+        print("-" * 50)
+        for proc in processes:
+            if verbose:
+                print(f"{proc['PID']:<10} {proc['Name'][:19]:<20} {proc['CPU (%)']:<10.2f} {proc['Memory (MB)']:<12.2f} {proc['Status']:<10} {proc['User'][:14]:<15}")
+            else:
+                print(f"{proc['PID']:<10} {proc['Name'][:19]:<20} {proc['CPU (%)']:<10.2f} {proc['Memory (MB)']:<12.2f}")
     print("-" * 50)
 
 def print_json(data):

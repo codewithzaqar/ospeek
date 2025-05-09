@@ -55,7 +55,7 @@ class SystemInfo:
                 })
         return result
     
-    def get_process_info(self, verbose=False, sort_key="cpu"):
+    def get_process_info(self, verbose=False, sort_key="cpu", filter_val=None):
         processes = []
         for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_info', 'status', 'username']):
             try:
@@ -68,6 +68,11 @@ class SystemInfo:
                 if verbose:
                     proc_info["Status"] = proc.info['status']
                     proc_info["User"] = proc.info['username']
+                if filter_val:
+                    if filter_val.isdigit() and int(filter_val) != proc_info["PID"]:
+                        continue
+                    elif filter_val.lower() not in proc_info["Name"].lower():
+                        continue
                 processes.append(proc_info)
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
@@ -77,7 +82,7 @@ class SystemInfo:
             return sorted(processes, key=lambda x: x["Memory (MB)"], reverse=True)[:10]
         elif sort_key == "pid":
             return sorted(processes, key=lambda x: x["PID"])[:10]
-        return processes[:10]
+        return processes[:10] if processes else [{"Status": "No matching processes found"}]
 
     def get_uptime_info(self):
         boot_time = datetime.datetime.fromtimestamp(psutil.boot_time())
@@ -137,3 +142,18 @@ class SystemInfo:
         except Exception as e:
             return [{"Status": f"Error retrieving temperature data: {str(e)}"}]
         return result if result else [{"Status": "No temperature sensors detected"}]
+    
+    def get_fan_info(self):
+        fans = psutil.sensors_fans() if hasattr(psutil, 'sensors_fans') else {}
+        result = []
+        try:
+            for fan, readings in fans.items():
+                for reading in readings:
+                    fan_info = {
+                        "Fan": f"{fan} ({reading.label or 'default'})",
+                        "Speed (RPM)": reading.current
+                    }
+                    result.append(fan_info)
+        except Exception as e:
+            return [{"Status": f"Error retrieving fan data: {str(e)}"}]
+        return result if result else [{"Status": "No fan sensors detected"}]

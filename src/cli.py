@@ -8,7 +8,7 @@ class OSPeekCLI:
         self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.09")
         self.parser.add_argument(
             "command",
-            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "version", "help"],
+            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "version", "help"],
             help="Command to execute",
             nargs="?",
             default="help",
@@ -35,6 +35,10 @@ class OSPeekCLI:
             default=0,
             help="Refresh output every N seconds (for processes, users)",
         )
+        self.parser.add_argument(
+            "--filter",
+            help="Filrer processes by name or PID (for processes command)",
+        )
 
     def run(self, args):
         args = self.parser.parse_args(args)
@@ -54,6 +58,8 @@ class OSPeekCLI:
             self.show_battery(args.json)
         elif args.command == "temperature":
             self.show_temperature(args.json)
+        elif args.command == "fan":
+            self.show_fan(args.json)
         elif args.command == "version":
             self.show_version(args.json)
         else:
@@ -153,6 +159,18 @@ class OSPeekCLI:
             else:
                 for sensor in temp_info:
                     print_formatted(f"Sensor: {sensor['Sensor']}", sensor)
+
+    def show_fan(self, json_output):
+        sys_info = SystemInfo()
+        fan_info = sys_info.get_fan_info()
+        if json_output:
+            print_json(fan_info)
+        else:
+            if fan_info and 'Status' in fan_info[0]:
+                print_formatted("Fan Speeds", fan_info[0])
+            else:
+                for fan in fan_info:
+                    print_formatted(f"Fan: {fan['Fan']}", fan)
 
     def show_version(self, json_output):
         from . import __version__
