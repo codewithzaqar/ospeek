@@ -33,3 +33,18 @@ class SystemInfo:
             "Free (GB)": disk.free / (1024**3),
             "Usage (%)": disk.percent,
         }
+    
+    def get_network_info(self):
+        interfaces = psutil.net_if_addrs()
+        stats = psutil.net_io_counters(pernic=True)
+        result = []
+        for iface in interfaces:
+            if iface in stats:
+                ip = next((addr.address for addr in interfaces[iface] if addr.family == 2), "N/A")
+                result.append({
+                    "Interface": iface,
+                    "IP Address": ip,
+                    "Bytes Sent (MB)": stats[iface].bytes_sent / (1024**2),
+                    "Bytes Received (MB)": stats[iface].bytes_recv / (1024**2),
+                })
+        return result

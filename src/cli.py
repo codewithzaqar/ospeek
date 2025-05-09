@@ -7,7 +7,7 @@ class OSPeekCLI:
         self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.0.2")
         self.parser.add_argument(
             "command",
-            choices=["info", "disk", "version", "help"],
+            choices=["info", "disk", "network", "version", "help"],
             help="Command to execute",
             nargs="?",
             default="help",
@@ -19,6 +19,8 @@ class OSPeekCLI:
             self.show_info()
         elif args.command == "disk":
             self.show_disk()
+        elif args.command == "network":
+            self.show_network()
         elif args.command == "version":
             self.show_version()
         else:
@@ -35,6 +37,12 @@ class OSPeekCLI:
         sys_info = SystemInfo()
         disk_info = sys_info.get_disk_info()
         print_formatted("Disk Usage", disk_info)
+
+    def show_network(self):
+        sys_info = SystemInfo()
+        network_info = sys_info.get_network_info()
+        for interface in network_info:
+            print_formatted(f"Interface: {interface['Interface']}", interface)
 
     def show_version(self):
         from .__init__ import __version__
