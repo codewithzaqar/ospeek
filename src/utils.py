@@ -1,4 +1,6 @@
 import json
+import os
+import platform
 
 def print_formatted(title, data):
     print(f"\n{title}:")
@@ -28,3 +30,9 @@ def print_process_table(title, processes, verbose=False):
 
 def print_json(data):
     print(json.dumps(data, indent=2))
+
+def clear_screen():
+    if platform.system() == "Windows":
+        os.system("cls")
+    else:
+        os.system("clear")

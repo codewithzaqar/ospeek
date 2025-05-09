@@ -119,3 +119,17 @@ class SystemInfo:
             "Power Plugged": bool(battery.power_plugged),
             "Time Remaining": time_remaining
         }
+    
+    def get_temperature_info(self):
+        temps = psutil.sensors_temperatures() if hasattr(psutil, 'sensors_temperatures') else {}
+        result = []
+        for sensor, readings in temps.items():
+            for reading in readings:
+                temp_info = {
+                    "Sensor": f"{sensor} ({reading.label or 'default'})",
+                    "Current (°C)": reading.current,
+                    "High (°C)": reading.high if reading.high else "N/A",
+                    "Critical (°C)": reading.critical if reading.critical else "N/A"
+                }
+                result.append(temp_info)
+            return result if result else [{"Status": "No temperature sensors detected"}]
