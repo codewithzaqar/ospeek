@@ -148,8 +148,11 @@ class OSPeekCLI:
         if json_output:
             print_json(temp_info)
         else:
-            for sensor in temp_info:
-                print_formatted(f"Sensor: {sensor['Sensor']}", sensor)
+            if temp_info and "Status" in temp_info[0]:
+                print_formatted("Temperature Sensors", temp_info[0])
+            else:
+                for sensor in temp_info:
+                    print_formatted(f"Sensor: {sensor['Sensor']}", sensor)
 
     def show_version(self, json_output):
         from . import __version__
