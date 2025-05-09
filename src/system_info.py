@@ -48,3 +48,17 @@ class SystemInfo:
                     "Bytes Received (MB)": stats[iface].bytes_recv / (1024**2),
                 })
         return result
+    
+    def get_process_info(self):
+        processes = []
+        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_info']):
+            try:
+                processes.append({
+                    "PID": proc.info['pid'],
+                    "Name": proc.info['name'],
+                    "CPU (%)": proc.info['cpu_percent'],
+                    "Memory (MB)": proc.info['memory_info'].rss / (1024**2),
+                })
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+        return sorted(processes, key=lambda x: x["CPU (%)"], reverse=True)[:10]  # Top 10 by CPU

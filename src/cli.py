@@ -1,13 +1,13 @@
 import argparse
 from .system_info import SystemInfo
-from .utils import print_formatted
+from .utils import print_formatted, print_process_table
 
 class OSPeekCLI:
     def __init__(self):
         self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.0.2")
         self.parser.add_argument(
             "command",
-            choices=["info", "disk", "network", "version", "help"],
+            choices=["info", "disk", "network", "processes", "version", "help"],
             help="Command to execute",
             nargs="?",
             default="help",
@@ -21,6 +21,8 @@ class OSPeekCLI:
             self.show_disk()
         elif args.command == "network":
             self.show_network()
+        elif args.command == "processes":
+            self.show_processes()
         elif args.command == "version":
             self.show_version()
         else:
@@ -43,6 +45,11 @@ class OSPeekCLI:
         network_info = sys_info.get_network_info()
         for interface in network_info:
             print_formatted(f"Interface: {interface['Interface']}", interface)
+
+    def show_processes(self):
+        sys_info = SystemInfo()
+        process_info = sys_info.get_process_info()
+        print_process_table("Running Processes", process_info)
 
     def show_version(self):
         from .__init__ import __version__
