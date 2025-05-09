@@ -7,6 +7,8 @@ pip install .
 ```
 ## Usage
 ```bash
-ospeek info    # Show version info
+ospeek info    # Show system, CPU, and memory info
+ospeek disk    # Show disk usage info
 ospeek version # Show CLI version
 ospeek help    # Show help
+```

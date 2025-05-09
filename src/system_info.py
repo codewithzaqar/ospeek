@@ -24,3 +24,12 @@ class SystemInfo:
                 "Usage (%)": psutil.virtual_memory().percent,
             }
         }
+    
+    def get_disk_info(self):
+        disk = psutil.disk_usage('/')
+        return {
+            "Total (GB)": disk.total / (1024**3),
+            "Used (GB)": disk.used / (1024**3),
+            "Free (GB)": disk.free / (1024**3),
+            "Usage (%)": disk.percent,
+        }

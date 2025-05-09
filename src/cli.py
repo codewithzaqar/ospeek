@@ -7,7 +7,7 @@ class OSPeekCLI:
         self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.0.2")
         self.parser.add_argument(
             "command",
-            choices=["info", "version", "help"],
+            choices=["info", "disk", "version", "help"],
             help="Command to execute",
             nargs="?",
             default="help",
@@ -17,6 +17,8 @@ class OSPeekCLI:
         args = self.parser.parse_args(args)
         if args.command == "info":
             self.show_info()
+        elif args.command == "disk":
+            self.show_disk()
         elif args.command == "version":
             self.show_version()
         else:
@@ -25,9 +27,14 @@ class OSPeekCLI:
     def show_info(self):
         sys_info = SystemInfo()
         info = sys_info.get_system_info()
-        print_formatted("System Information", info)
+        print_formatted("System Information", info["system"])
         print_formatted("CPU Information", info["cpu"])
         print_formatted("Memory Information", info["memory"])
+
+    def show_disk(self):
+        sys_info = SystemInfo()
+        disk_info = sys_info.get_disk_info()
+        print_formatted("Disk Usage", disk_info)
 
     def show_version(self):
         from .__init__ import __version__
