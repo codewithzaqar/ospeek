@@ -55,7 +55,7 @@ class SystemInfo:
                 })
         return result
     
-    def get_process_info(self, verbose=False):
+    def get_process_info(self, verbose=False, sort_key="cpu"):
         processes = []
         for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_info', 'status', 'username']):
             try:
@@ -71,7 +71,13 @@ class SystemInfo:
                 processes.append(proc_info)
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
-        return sorted(processes, key=lambda x: x["CPU (%)"], reverse=True)[:10]
+        if sort_key == "cpu":
+            return sorted(processes, key=lambda x: x["CPU (%)"], reverse=True)[:10]
+        elif sort_key == "memory":
+            return sorted(processes, key=lambda x: x["Memory (MB)"], reverse=True)[:10]
+        elif sort_key == "pid":
+            return sorted(processes, key=lambda x: x["PID"])[:10]
+        return processes[:10]
 
     def get_uptime_info(self):
         boot_time = datetime.datetime.fromtimestamp(psutil.boot_time())
@@ -98,3 +104,18 @@ class SystemInfo:
                 user_info["PID"] = user.pid if user.pid else "N/A"
             users.append(user_info)
         return users
+    
+    def get_battery_info(self):
+        battery = psutil.sensors_battery()
+        if battery is None:
+            return {"Status": "No battery detected"}
+        time_remaining = "N/A"
+        if battery.secsleft and battery.secsleft != psutil.POWER_TIME_UNLIMITED:
+            hours = battery.secsleft // 3600
+            minutes = (battery.secsleft % 3600) // 60
+            time_remaining = f"{int(hours)} hours, {int(minutes)} minutes"
+        return {
+            "Percentage (%)": battery.percent,
+            "Power Plugged": bool(battery.power_plugged),
+            "Time Remaining": time_remaining
+        }
