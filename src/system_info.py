@@ -1,5 +1,6 @@
 import platform
 import psutil
+import datetime
 
 class SystemInfo:
     def get_system_info(self):
@@ -61,4 +62,16 @@ class SystemInfo:
                 })
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
-        return sorted(processes, key=lambda x: x["CPU (%)"], reverse=True)[:10]  # Top 10 by CPU
+        return sorted(processes, key=lambda x: x["CPU (%)"], reverse=True)[:10]
+
+    def get_uptime_info(self):
+        boot_time = datetime.datetime.fromtimestamp(psutil.boot_time())
+        uptime_seconds = (datetime.datetime.now() - boot_time).total_seconds()
+        days = int(uptime_seconds // (24 * 3600))
+        hours = int((uptime_seconds % (24 * 3600)) // 3600)
+        minutes = int((uptime_seconds % 3600) // 60)
+        uptime_str = f"{days} days, {hours} hours, {minutes} minutes"
+        return {
+            "Uptime": uptime_str,
+            "Boot Time": boot_time.strftime("%Y-%m-%d %H:%M:%S")
+        }

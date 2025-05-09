@@ -1,3 +1,5 @@
+import json
+
 def print_formatted(title, data):
     print(f"\n{title}:")
     print("-" * 50)
@@ -17,3 +19,6 @@ def print_process_table(title, processes):
     for proc in processes:
         print(f"{proc['PID']:<10} {proc['Name'][:19]:<20} {proc['CPU (%)']:<10.2f} {proc['Memory (MB)']:<12.2f}")
     print("-" * 50)
+
+def print_json(data):
+    print(json.dumps(data, indent=2))
