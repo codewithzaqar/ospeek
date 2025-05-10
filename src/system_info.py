@@ -247,3 +247,41 @@ class SystemInfo:
         except Exception as e:
             return [{"Status": f"Error retrieving log data: {str(e)}"}]
         return logs if logs else [{"Status": "No log entries found"}]
+    
+    def get_alert_info(self, thresholds):
+        alerts = []
+        try:
+            # CPU Usage
+            cpu_usage = psutil.cpu_percent(interval=1)
+            cpu_status = "ALERT" if cpu_usage > thresholds["cpu"] else "OK"
+            alerts.append({
+                "Metric": "CPU Usage",
+                "Current (%)": cpu_usage,
+                "Threshold (%)": thresholds["cpu"],
+                "Status": cpu_status
+            })
+
+            # Memory Usage
+            memory = psutil.virtual_memory()
+            memory_usage = memory.percent
+            memory_status = "ALERT" if memory_usage > thresholds["memory"] else "OK"
+            alerts.append({
+                "Metric": "Memory Usage",
+                "Current (%)": memory_usage,
+                "Threshold (%)": thresholds["memory"],
+                "Status": memory_status
+            })
+
+            # Disk Usage
+            disk = psutil.disk_usage('/')
+            disk_usage = disk.percent
+            disk_status = "ALERT" if disk > thresholds["disk"] else "OK"
+            alerts.append({
+                "Metric": "Disk Usage",
+                "Current (%)": disk_usage,
+                "Threshold (%)": thresholds["disk"],
+                "Status": disk_status 
+            })
+        except Exception as e:
+            return [{"Status": f"Error retrieving alert data: {str(e)}"}]
+        return alerts

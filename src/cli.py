@@ -5,10 +5,10 @@ from .utils import print_formatted, print_process_table, print_json, clear_scree
 
 class OSPeekCLI:
     def __init__(self):
-        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.1.2")
+        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.1.3")
         self.parser.add_argument(
             "command",
-            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "services", "logs", "version", "help"],
+            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "services", "logs", "alerts", "version", "help"],
             help="Command to execute",
             nargs="?",
             default="help",
@@ -51,6 +51,10 @@ class OSPeekCLI:
             default=0,
             help="Limit number of entries displayed  (for logs, services; default 10 for logs)",
         )
+        self.parser.add_argument(
+            "--threshold",
+            help="Set alert thresholds as cpu,memory,disk (e.g., cpu=80,memory=85,disk=90) (for alerts command)",
+        )
 
     def run(self, args):
         args = self.parser.parse_args(args)
@@ -76,6 +80,8 @@ class OSPeekCLI:
             self.show_services(args.json, args.count)
         elif args.command == "logs":
             self.show_logs(args.json, args.count)
+        elif args.command == "alerts":
+            self.show_alerts(args.json, args.watch, args.threshold)
         elif args.command == "version":
             self.show_version(args.json)
         else:
@@ -247,6 +253,46 @@ class OSPeekCLI:
             else:
                 for log in log_info:
                     print_formatted(f"Timestamp: {log['Timestamp']}", log)
+
+    def show_alerts(self, json_output, watch, threshold):
+        sys_info = SystemInfo()
+        thresholds = self.parse_thresholds(threshold)
+        if watch > 0 and not json_output:
+            try:
+                while True:
+                    clear_screen()
+                    alert_info = sys_info.get_alert_info(thresholds)
+                    if alert_info and "Status" in alert_info[0]:
+                        print_formatted("System Alerts", alert_info[0])
+                    else:
+                        for alert in alert_info:
+                            print_formatted(f"Metric: {alert['Metric']}", alert)
+                    print(f"[Refreshes every {watch} second{'s' if watch != 1 else ''}, press Ctrl+C to stop]")
+                    time.sleep(watch)
+            except KeyboardInterrupt:
+                print("\nStopped refreshing")
+        else:
+            alert_info = sys_info.get_alert_info(thresholds)
+            if json_output:
+                print_json(alert_info)
+            else:
+                if alert_info and "Status" in alert_info[0]:
+                    print_formatted("System Alerts", alert_info[0])
+                else:
+                    for alert in alert_info:
+                        print_formatted(f"Metric: {alert['Metric']}", alert)
+
+    def parse_thresholds(self, threshold_str):
+        defaults = {"cpu": 80.0, "memory": 85.0, "disk": 90.0}
+        if threshold_str:
+            try:
+                for part in threshold_str.split(","):
+                    key, value = part.split("=")
+                    if key in defaults:
+                        defaults[key] = float(value)
+            except (ValueError, KeyError):
+                print(f"Invalid threshold format: {threshold_str}. Using defaults.")
+        return defaults
 
     def show_version(self, json_output):
         from . import __version__

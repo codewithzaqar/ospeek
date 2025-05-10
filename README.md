@@ -20,6 +20,7 @@ ospeek temperature [--json] [--watch <seconds>]                                 
 ospeek fan [--json] [--watch <seconds>]                                                                                            # Show fan speed data
 ospeek services [--json] [--count <number>]                                                                                        # Show system service info
 ospeek logs [--json] [--count <number>]                                                                                            # Show recent system log entries
+ospeek alerts [--json] [--watch <seconds>] [--threshold <cpu,memory,disk>]                                                         # Show system metric alerts
 ospeek version [--json]                                                                                                            # Show CLI version
 ospeek help                                                                                                                        # Show help
 ```
