@@ -2,6 +2,12 @@ import platform
 import psutil
 import datetime
 import sys
+import os
+
+try:
+    import win32evtlog # type: ignore
+except ImportError:
+    win32evtlog = None
 
 class SystemInfo:
     def get_system_info(self, verbose=False):
@@ -200,3 +206,44 @@ class SystemInfo:
         except Exception as e:
             return [{"Status": f"Error retrieving service data: {str(e)}"}]
         return services if services else [{"Status": "No services detected"}]
+    
+    def get_log_info(self):
+        logs = []
+        try:
+            if platform.system() == "Windows" and win32evtlog:
+                server = None  # Local machine
+                log_type = "System"
+                hand = win32evtlog.OpenEventLog(server, log_type)
+                flags = win32evtlog.EVENTLOG_BACKWARDS_READ | win32evtlog.EVENTLOG_SEQUENTIAL_READ
+                events = win32evtlog.ReadEventLog(hand, flags, 0)
+                for event in events[:50]:  # Limit to 50 to avoid excessive data
+                    timestamp = event.TimeGenerated.strftime("%Y-%m-%d %H:%M:%S")
+                    source = event.SourceName
+                    message = str(event.StringInserts) if event.StringInserts else "N/A"
+                    logs.append({
+                        "Timestamp": timestamp,
+                        "Source": source,
+                        "Message": message
+                    })
+                win32evtlog.CloseEventLog(hand)
+            else:
+                log_files = ["/var/log/syslog", "/var/log/messages"]
+                for log_file in log_files:
+                    if os.path.exists(log_file):
+                        with open(log_file, "r", errors="ignore") as f:
+                            lines = f.readlines()[-50:]  # Last 50 lines
+                            for line in lines:
+                                parts = line.split(" ", 5)
+                                if len(parts) >= 5:
+                                    timestamp = f"{parts[0]} {parts[1]} {parts[2]}"
+                                    source = parts[4].split(":")[0]
+                                    message = parts[5].strip()
+                                    logs.append({
+                                        "Timestamp": timestamp,
+                                        "Source": source,
+                                        "Message": message
+                                    })
+                        break
+        except Exception as e:
+            return [{"Status": f"Error retrieving log data: {str(e)}"}]
+        return logs if logs else [{"Status": "No log entries found"}]

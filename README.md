@@ -18,7 +18,8 @@ ospeek users [--json] [--verbose] [--refresh <seconds>]                         
 ospeek battery [--json]                                                                                                            # Show battery status and capacity
 ospeek temperature [--json] [--watch <seconds>]                                                                                    # Show temperature sensor data
 ospeek fan [--json] [--watch <seconds>]                                                                                            # Show fan speed data
-ospeek services [--json]                                                                                                           # Show system service info
+ospeek services [--json] [--count <number>]                                                                                        # Show system service info
+ospeek logs [--json] [--count <number>]                                                                                            # Show recent system log entries
 ospeek version [--json]                                                                                                            # Show CLI version
 ospeek help                                                                                                                        # Show help
 ```

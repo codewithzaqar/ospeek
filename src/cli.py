@@ -5,10 +5,10 @@ from .utils import print_formatted, print_process_table, print_json, clear_scree
 
 class OSPeekCLI:
     def __init__(self):
-        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.09")
+        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.1.2")
         self.parser.add_argument(
             "command",
-            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "services", "version", "help"],
+            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "services", "logs", "version", "help"],
             help="Command to execute",
             nargs="?",
             default="help",
@@ -45,6 +45,12 @@ class OSPeekCLI:
             default=0,
             help="Watch output every N seconds (for temperature, fan)"
         )
+        self.parser.add_argument(
+            "--count",
+            type=int,
+            default=0,
+            help="Limit number of entries displayed  (for logs, services; default 10 for logs)",
+        )
 
     def run(self, args):
         args = self.parser.parse_args(args)
@@ -67,7 +73,9 @@ class OSPeekCLI:
         elif args.command == "fan":
             self.show_fan(args.json, args.watch)
         elif args.command == "services":
-            self.show_services(args.json)
+            self.show_services(args.json, args.count)
+        elif args.command == "logs":
+            self.show_logs(args.json, args.count)
         elif args.command == "version":
             self.show_version(args.json)
         else:
@@ -210,9 +218,11 @@ class OSPeekCLI:
                     for fan in fan_info:
                         print_formatted(f"Fan: {fan['Fan']}", fan)
 
-    def show_services(self, json_output):
+    def show_services(self, json_output, count):
         sys_info = SystemInfo()
         service_info = sys_info.get_service_info()
+        if count > 0:
+            service_info = service_info[:count]
         if json_output:
             print_json(service_info)
         else:
@@ -221,6 +231,22 @@ class OSPeekCLI:
             else:
                 for service in service_info:
                     print_formatted(f"Service: {service['Service']}", service)
+
+    def show_logs(self, json_output, count):
+        sys_info = SystemInfo()
+        log_info = sys_info.get_log_info()
+        if count > 0:
+            log_info = log_info[:count]
+        else:
+            log_info = log_info[:10]  # Default limit for logs
+        if json_output:
+            print_json(log_info)
+        else:
+            if log_info and "Status" in log_info[0]:
+                print_formatted("System Logs", log_info[0])
+            else:
+                for log in log_info:
+                    print_formatted(f"Timestamp: {log['Timestamp']}", log)
 
     def show_version(self, json_output):
         from . import __version__
