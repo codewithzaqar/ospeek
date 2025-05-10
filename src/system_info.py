@@ -157,3 +157,46 @@ class SystemInfo:
         except Exception as e:
             return [{"Status": f"Error retrieving fan data: {str(e)}"}]
         return result if result else [{"Status": "No fan sensors detected"}]
+    
+    def get_service_info(self):
+        services = []
+        try:
+            if hasattr(psutil, 'win_service_iter') and platform.system() == "Windows":
+                for service in psutil.win_service_iter():
+                    try:
+                        svc = service.as_dict()
+                        services.append({
+                            "Service": svc["name"],
+                            "Status": svc["status"],
+                            "PID": svc["pid"] if svc["pid"] else "N/A"
+                        })
+                    except psutil.NoSuchProcess:
+                        continue
+            else:
+                # On Unix-like systems, simulate service info using known daemons
+                known_services = ["sshd", "cron", "apache2", "nginx", "mysql"]
+                for proc in psutil.process_iter(['pid', 'name']):
+                    try:
+                        name = proc.info['name'].lower()
+                        for svc in known_services:
+                            if svc in name:
+                                services.append({
+                                    "Service": svc,
+                                    "Status": "running",
+                                    "PID": proc.info['pid']
+                                })
+                                break
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        continue
+                # Add stopped services for known services not found
+                found_services = {svc["Service"] for svc in services}
+                for svc in known_services:
+                    if svc not in found_services:
+                        services.append({
+                            "Service": svc,
+                            "Status": "stopped",
+                            "PID": "N/A"
+                        })
+        except Exception as e:
+            return [{"Status": f"Error retrieving service data: {str(e)}"}]
+        return services if services else [{"Status": "No services detected"}]

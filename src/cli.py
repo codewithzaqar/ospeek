@@ -8,7 +8,7 @@ class OSPeekCLI:
         self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.09")
         self.parser.add_argument(
             "command",
-            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "version", "help"],
+            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "services", "version", "help"],
             help="Command to execute",
             nargs="?",
             default="help",
@@ -39,6 +39,12 @@ class OSPeekCLI:
             "--filter",
             help="Filrer processes by name or PID (for processes command)",
         )
+        self.parser.add_argument(
+            "--watch",
+            type=float,
+            default=0,
+            help="Watch output every N seconds (for temperature, fan)"
+        )
 
     def run(self, args):
         args = self.parser.parse_args(args)
@@ -57,9 +63,11 @@ class OSPeekCLI:
         elif args.command == "battery":
             self.show_battery(args.json)
         elif args.command == "temperature":
-            self.show_temperature(args.json)
+            self.show_temperature(args.json, args.watch)
         elif args.command == "fan":
-            self.show_fan(args.json)
+            self.show_fan(args.json, args.watch)
+        elif args.command == "services":
+            self.show_services(args.json)
         elif args.command == "version":
             self.show_version(args.json)
         else:
@@ -148,29 +156,71 @@ class OSPeekCLI:
         else:
             print_formatted("Battery Status", battery_info)
 
-    def show_temperature(self, json_output):
+    def show_temperature(self, json_output, watch):
         sys_info = SystemInfo()
-        temp_info = sys_info.get_temperature_info()
-        if json_output:
-            print_json(temp_info)
+        if watch > 0 and not json_output:
+            try:
+                while True:
+                    clear_screen()
+                    temp_info = sys_info.get_temperature_info()
+                    if temp_info and "Status" in temp_info[0]:
+                        print_formatted("Temperature Sensors", temp_info[0])
+                    else:
+                        for sensor in temp_info:
+                            print_formatted(f"Sensor: {sensor['Sensor']}", sensor)
+                    print(f"[Refreshes every {watch} second{'s' if watch != 1 else ''}, press Ctrl+C to stop]")
+                    time.sleep(watch)
+            except KeyboardInterrupt:
+                print("\nStopped refreshing")
         else:
-            if temp_info and "Status" in temp_info[0]:
-                print_formatted("Temperature Sensors", temp_info[0])
+            temp_info = sys_info.get_temperature_info()
+            if json_output:
+                print_json(temp_info)
             else:
-                for sensor in temp_info:
-                    print_formatted(f"Sensor: {sensor['Sensor']}", sensor)
+                if temp_info and "Status" in temp_info[0]:
+                    print_formatted("Temperature Sensors", temp_info[0])
+                else:
+                    for sensor in temp_info:
+                        print_formatted(f"Sensor: {sensor['Sensor']}", sensor)
 
-    def show_fan(self, json_output):
+    def show_fan(self, json_output, watch):
         sys_info = SystemInfo()
-        fan_info = sys_info.get_fan_info()
-        if json_output:
-            print_json(fan_info)
+        if watch > 0 and not json_output:
+            try:
+                while True:
+                    clear_screen()
+                    fan_info = sys_info.get_fan_info()
+                    if fan_info and "Status" in fan_info[0]:
+                        print_formatted("Fan Speeds", fan_info[0])
+                    else:
+                        for fan in fan_info:
+                            print_formatted(f"Fan: {fan['Fan']}", fan)
+                    print(f"[Refreshes every {watch} second{'s' if watch != 1 else ''}, press Ctrl+C to stop]")
+                    time.sleep(watch)
+            except KeyboardInterrupt:
+                print("\nStopped refreshing")
         else:
-            if fan_info and 'Status' in fan_info[0]:
-                print_formatted("Fan Speeds", fan_info[0])
+            fan_info = sys_info.get_fan_info()
+            if json_output:
+                print_json(fan_info)
             else:
-                for fan in fan_info:
-                    print_formatted(f"Fan: {fan['Fan']}", fan)
+                if fan_info and 'Status' in fan_info[0]:
+                    print_formatted("Fan Speeds", fan_info[0])
+                else:
+                    for fan in fan_info:
+                        print_formatted(f"Fan: {fan['Fan']}", fan)
+
+    def show_services(self, json_output):
+        sys_info = SystemInfo()
+        service_info = sys_info.get_service_info()
+        if json_output:
+            print_json(service_info)
+        else:
+            if service_info and "Status" in service_info[0]:
+                print_formatted("System Services", service_info[0])
+            else:
+                for service in service_info:
+                    print_formatted(f"Service: {service['Service']}", service)
 
     def show_version(self, json_output):
         from . import __version__
