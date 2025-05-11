@@ -21,6 +21,7 @@ ospeek fan [--json] [--watch <seconds>]                                         
 ospeek services [--json] [--count <number>]                                                                                        # Show system service info
 ospeek logs [--json] [--count <number>]                                                                                            # Show recent system log entries
 ospeek alerts [--json] [--watch <seconds>] [--threshold <cpu,memory,disk>]                                                         # Show system metric alerts
+ospeek network-stats [--json] [--watch <seconds>]                                                                                  # Show detailed network statistics
 ospeek version [--json]                                                                                                            # Show CLI version
 ospeek help                                                                                                                        # Show help
 ```

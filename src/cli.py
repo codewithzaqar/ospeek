@@ -5,10 +5,10 @@ from .utils import print_formatted, print_process_table, print_json, clear_scree
 
 class OSPeekCLI:
     def __init__(self):
-        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.1.3")
+        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.1.4")
         self.parser.add_argument(
             "command",
-            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "services", "logs", "alerts", "version", "help"],
+            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "services", "logs", "alerts", "network-stats", "version", "help"],
             help="Command to execute",
             nargs="?",
             default="help",
@@ -82,6 +82,8 @@ class OSPeekCLI:
             self.show_logs(args.json, args.count)
         elif args.command == "alerts":
             self.show_alerts(args.json, args.watch, args.threshold)
+        elif args.command == "network-stats":
+            self.show_network_stats(args.json, args.watch)
         elif args.command == "version":
             self.show_version(args.json)
         else:
@@ -281,6 +283,33 @@ class OSPeekCLI:
                 else:
                     for alert in alert_info:
                         print_formatted(f"Metric: {alert['Metric']}", alert)
+
+    def show_network_stats(self, json_output, watch):
+        sys_info = SystemInfo()
+        if watch > 0 and not json_output:
+            try:
+                while True:
+                    clear_screen()
+                    stats_info = sys_info.get_network_stats()
+                    if stats_info and "Stats" in stats_info[0]:
+                        print_formatted("Network Statistics", stats_info[0])
+                    else:
+                        for stats in stats_info:
+                            print_formatted(f"Interface: {stats['Interface']}", stats)
+                    print(f"[Refreshes every {watch} second{'s' if watch != 1 else ''}, press Ctrl+C to stop]")
+                    time.sleep(watch)
+            except KeyboardInterrupt:
+                print("\nStopped refreshing")
+        else:
+            stats_info = sys_info.get_network_stats()
+            if json_output:
+                print_json(stats_info)
+            else:
+                if stats_info and "Status" in stats_info[0]:
+                    print_formatted("Network Statistics", stats_info[0])
+                else:
+                    for stats in stats_info:
+                        print_formatted(f"Interface: {stats['Interface']}", stats)
 
     def parse_thresholds(self, threshold_str):
         defaults = {"cpu": 80.0, "memory": 85.0, "disk": 90.0}

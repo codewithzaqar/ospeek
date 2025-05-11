@@ -3,6 +3,7 @@ import psutil
 import datetime
 import sys
 import os
+import time
 
 try:
     import win32evtlog # type: ignore
@@ -285,3 +286,28 @@ class SystemInfo:
         except Exception as e:
             return [{"Status": f"Error retrieving alert data: {str(e)}"}]
         return alerts
+    
+    def get_network_stats(self):
+        stats = []
+        try:
+            initial_stats = psutil.net_io_counters(pernic=True)
+            time.sleep(1)  # Wait to calculate bandwidth
+            final_stats = psutil.net_io_counters(pernic=True)
+            for iface in initial_stats:
+                initial = initial_stats[iface]
+                final = final_stats.get(iface, initial)
+                bandwidth_sent = (final.bytes_sent - initial.bytes_sent) / (1024**2)  # MB/s
+                bandwidth_recv = (final.bytes_recv - initial.bytes_recv) / (1024**2)  # MB/s
+                stats.append({
+                    "Interface": iface,
+                    "Packets Sent": final.packets_sent,
+                    "Packets Received": final.packets_recv,
+                    "Errors In": final.errin,
+                    "Errors Out": final.errout,
+                    "Dropped Packets": final.dropout + final.dropin,
+                    "Bandwidth Sent (MB/s)": bandwidth_sent,
+                    "Bandwidth Received (MB/s)": bandwidth_recv
+                })
+        except Exception as e:
+            return [{"Status": f"Error retrieving network stats: {str(e)}"}]
+        return stats if stats else [{"Status": "No network interfaces detected"}]
