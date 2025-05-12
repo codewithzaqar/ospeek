@@ -4,6 +4,8 @@ import datetime
 import sys
 import os
 import time
+import json
+from pathlib import Path
 
 try:
     import win32evtlog # type: ignore
@@ -11,6 +13,16 @@ except ImportError:
     win32evtlog = None
 
 class SystemInfo:
+    def __init__(self):
+        self.history_file = Path.home() / ".ospeek" / "history.json"
+        self.ensure_history_file()
+
+    def ensure_history_file(self):
+        if not self.history_file.exists():
+            self.history_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.history_file, "w") as f:
+                json.dump([], f)
+
     def get_system_info(self, verbose=False):
         return {
             "system": {
@@ -312,7 +324,7 @@ class SystemInfo:
             return [{"Status": f"Error retrieving network stats: {str(e)}"}]
         return stats if stats else [{"Status": "No network interfaces detected"}]
     
-    def get_summery_info(self):
+    def get_summery_info(self, detailed=False):
         try:
             cpu_usage = psutil.cpu_percent(interval=1)
             memory = psutil.virtual_memory()
@@ -340,6 +352,50 @@ class SystemInfo:
                 "Network Bandwidth Received (MB/s)": bandwidth_recv,
                 "Active Alerts": ", ".join(alerts) if alerts else "None"
             }
+
+            if detailed:
+                uptime_info = self.get_uptime_info()
+                user_info = self.get_user_info()
+                summary["Uptime"] = uptime_info["Uptime"]
+                summary["Active Users"] = len(user_info)
+
+            self.log_history(cpu_usage, memory.percent, disk.percent, bandwidth_sent, bandwidth_recv)
             return summary
         except Exception as e:
             return {"Status": f"Error retrieving summary data: {str(e)}"}
+        
+    def log_history(self, cpu_usage, memory_usage, disk_usage, bandwidth_sent=0.0, bandwidth_recv=0.0):
+        try:
+            with open(self.history_file, "r") as f:
+                history = json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            history = []
+
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        record = {
+            "Timestamp": timestamp,
+            "CPU Usage (%)": cpu_usage,
+            "Memory Usage (%)": memory_usage,
+            "Disk Usage (%)": disk_usage,
+            "Network Bandwidth Sent (MB/s)": bandwidth_sent,
+            "Network Bandwidth Received (MB/s)": bandwidth_recv
+        }
+        history.append(record)
+
+        with open(self.history_file, "w") as f:
+            json.dump(history, f, indent=2)
+
+    def get_history_info(self):
+        try:
+            with open(self.history_file, "r") as f:
+                history = json.load(f)
+            return history if history else [{"Status": "No history data available"}]
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            return [{"Status": f"Error reading history data: {str(e)}"}]
+        
+    def clear_history(self):
+        try:
+            with open(self.history_file, "w") as f:
+                json.dump([], f)
+        except Exception as e:
+            print(f"Error clearing history: {str(e)}")

@@ -5,10 +5,10 @@ from .utils import print_formatted, print_process_table, print_json, clear_scree
 
 class OSPeekCLI:
     def __init__(self):
-        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.1.5")
+        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.1.6")
         self.parser.add_argument(
             "command",
-            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "services", "logs", "alerts", "network-stats", "summary", "version", "help"],
+            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "services", "logs", "alerts", "network-stats", "summary", "history", "version", "help"],
             help="Command to execute",
             nargs="?",
             default="help",
@@ -60,6 +60,16 @@ class OSPeekCLI:
             action="store_true",
             help="Send desktop notifications for alerts (requires plyer)",
         )
+        self.parser.add_argument(
+            "--detailed",
+            action="store_true",
+            help="Include additional metrics in summary (e.g., uptime, active users)",
+        )
+        self.parser.add_argument(
+            "--clear",
+            action="store_true",
+            help="Clear historical metrics (for history command)"
+        )
 
     def run(self, args):
         args = self.parser.parse_args(args)
@@ -90,7 +100,9 @@ class OSPeekCLI:
         elif args.command == "network-stats":
             self.show_network_stats(args.json, args.watch)
         elif args.command == "summary":
-            self.show_summary(args.json, args.watch)
+            self.show_summary(args.json, args.watch, args.detailed)
+        elif args.command == "history":
+            self.show_history(args.json, args.count, args.clear)
         elif args.command == "version":
             self.show_version(args.json)
         else:
@@ -318,13 +330,13 @@ class OSPeekCLI:
                     for stats in stats_info:
                         print_formatted(f"Interface: {stats['Interface']}", stats)
 
-    def show_summary(self, json_output, watch):
+    def show_summary(self, json_output, watch, detailed):
         sys_info = SystemInfo()
         if watch > 0 and not json_output:
             try:
                 while True:
                     clear_screen()
-                    summary_info = sys_info.get_summery_info()
+                    summary_info = sys_info.get_summery_info(detailed)
                     if summary_info.get("Status"):
                         print_formatted("System Summary", {"Status": summary_info["Status"]})
                     else:
@@ -334,7 +346,7 @@ class OSPeekCLI:
             except KeyboardInterrupt:
                 print("\nStopped refreshing")
         else:
-            summary_info = sys_info.get_summery_info()
+            summary_info = sys_info.get_summery_info(detailed)
             if json_output:
                 print_json(summary_info)
             else:
@@ -342,6 +354,24 @@ class OSPeekCLI:
                     print_formatted("System Summary", {"Status": summary_info["Status"]})
                 else:
                     print_formatted("System Summary", summary_info)
+
+    def show_history(self, json_output, count, clear):
+        sys_info = SystemInfo()
+        if clear:
+            sys_info.clear_history()
+            print("History cleared successfully.")
+            return
+        history_info = sys_info.get_history_info()
+        if count > 0:
+            history_info = history_info[-count:]
+        if json_output:
+            print_json(history_info)
+        else:
+            if history_info and isinstance(history_info, list) and len(history_info) > 0 and "Status" in history_info[0]:
+                print_formatted("History System Metrics", history_info[0])
+            else:
+                for record in history_info:
+                    print_formatted(f"Timestamp: {record['Timestamp']}", record)
 
     def parse_thresholds(self, threshold_str):
         defaults = {"cpu": 80.0, "memory": 85.0, "disk": 90.0}
