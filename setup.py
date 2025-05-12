@@ -2,11 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name="ospeek",
-    version="0.1.4",
+    version="0.1.5",
     packages=find_packages(),
     install_requires=['psutil'],
     extras_require={
-        "windows": ["pywin32"]
+        "windows": ["pywin32"],
+        "notifications": ["plyer"]
     },
     entry_points={
         "console_scripts": [

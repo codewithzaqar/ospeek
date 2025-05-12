@@ -1,14 +1,14 @@
 import argparse
 import time
 from .system_info import SystemInfo
-from .utils import print_formatted, print_process_table, print_json, clear_screen
+from .utils import print_formatted, print_process_table, print_json, clear_screen, send_notification
 
 class OSPeekCLI:
     def __init__(self):
-        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.1.4")
+        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.1.5")
         self.parser.add_argument(
             "command",
-            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "services", "logs", "alerts", "network-stats", "version", "help"],
+            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "services", "logs", "alerts", "network-stats", "summary", "version", "help"],
             help="Command to execute",
             nargs="?",
             default="help",
@@ -55,6 +55,11 @@ class OSPeekCLI:
             "--threshold",
             help="Set alert thresholds as cpu,memory,disk (e.g., cpu=80,memory=85,disk=90) (for alerts command)",
         )
+        self.parser.add_argument(
+            "--notify",
+            action="store_true",
+            help="Send desktop notifications for alerts (requires plyer)",
+        )
 
     def run(self, args):
         args = self.parser.parse_args(args)
@@ -84,6 +89,8 @@ class OSPeekCLI:
             self.show_alerts(args.json, args.watch, args.threshold)
         elif args.command == "network-stats":
             self.show_network_stats(args.json, args.watch)
+        elif args.command == "summary":
+            self.show_summary(args.json, args.watch)
         elif args.command == "version":
             self.show_version(args.json)
         else:
@@ -310,6 +317,31 @@ class OSPeekCLI:
                 else:
                     for stats in stats_info:
                         print_formatted(f"Interface: {stats['Interface']}", stats)
+
+    def show_summary(self, json_output, watch):
+        sys_info = SystemInfo()
+        if watch > 0 and not json_output:
+            try:
+                while True:
+                    clear_screen()
+                    summary_info = sys_info.get_summery_info()
+                    if summary_info.get("Status"):
+                        print_formatted("System Summary", {"Status": summary_info["Status"]})
+                    else:
+                        print_formatted("System Summary", summary_info)
+                    print(f"[Refreshes every {watch} second{'s' if watch != 1 else ''}, press Ctrl+C to stop]")
+                    time.sleep(watch)
+            except KeyboardInterrupt:
+                print("\nStopped refreshing")
+        else:
+            summary_info = sys_info.get_summery_info()
+            if json_output:
+                print_json(summary_info)
+            else:
+                if summary_info.get("Status"):
+                    print_formatted("System Summary", {"Status": summary_info["Status"]})
+                else:
+                    print_formatted("System Summary", summary_info)
 
     def parse_thresholds(self, threshold_str):
         defaults = {"cpu": 80.0, "memory": 85.0, "disk": 90.0}

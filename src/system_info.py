@@ -311,3 +311,35 @@ class SystemInfo:
         except Exception as e:
             return [{"Status": f"Error retrieving network stats: {str(e)}"}]
         return stats if stats else [{"Status": "No network interfaces detected"}]
+    
+    def get_summery_info(self):
+        try:
+            cpu_usage = psutil.cpu_percent(interval=1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+            initial_stats = psutil.net_io_counters()
+            time.sleep(1)  # Wait to celculate bandwidth
+            final_stats = psutil.net_io_counters()
+            bandwidth_sent = (final_stats.bytes_sent - initial_stats.bytes_sent) / (1024**2)  # MB/s
+            bandwidth_recv = (final_stats.bytes_recv - initial_stats.bytes_recv) / (1024**2)  # MB/s
+
+            thresholds = {"cpu": 80.0, "memory": 85.0, "disk": 90.0}
+            alerts = []
+            if cpu_usage > thresholds["cpu"]:
+                alerts.append("CPU Usage (ALERT)")
+            if memory.percent > thresholds["memory"]:
+                alerts.append("Memory Usage (ALERT)")
+            if disk.percent > thresholds["disk"]:
+                alerts.append("Disk Usage (ALERT)")
+
+            summary = {
+                "CPU Usage (%)": cpu_usage,
+                "Memory Usage (%)": memory.percent,
+                "Disk Usage (%)": disk.percent,
+                "Network Bandwidth Sent (MB/s)": bandwidth_sent,
+                "Network Bandwidth Received (MB/s)": bandwidth_recv,
+                "Active Alerts": ", ".join(alerts) if alerts else "None"
+            }
+            return summary
+        except Exception as e:
+            return {"Status": f"Error retrieving summary data: {str(e)}"}

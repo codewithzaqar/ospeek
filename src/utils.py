@@ -2,6 +2,11 @@ import json
 import os
 import platform
 
+try:
+    from plyer import notification
+except ImportError:
+    notification = None
+
 def print_formatted(title, data):
     print(f"\n{title}:")
     print("-" * 50)
@@ -39,3 +44,18 @@ def clear_screen():
         os.system("cls")
     else:
         os.system("clear")
+
+def send_notification(title, message):
+    if notification:
+        try:
+            notification.notify(
+                title=title,
+                message=message,
+                app_name="OSPeek",
+                timeout=10
+            )
+            print(f"[Desktop notification: \"{title}: {message}\"]")
+        except Exception as e:
+            print(f"[Failed to send notification: {str(e)}]")
+    else:
+        print("[Notifications unavailable: player not installed]")
