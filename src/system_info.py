@@ -6,6 +6,8 @@ import os
 import time
 import json
 from pathlib import Path
+import numpy as np
+from datetime import datetime, timedelta
 
 try:
     import win32evtlog # type: ignore
@@ -22,6 +24,23 @@ class SystemInfo:
             self.history_file.parent.mkdir(parents=True, exist_ok=True)
             with open(self.history_file, "w") as f:
                 json.dump([], f)
+
+    def parse_period(self, period_str):
+        if not period_str:
+            return None
+        try:
+            unit = period_str[-1].lower()
+            value = float(period_str[:-1])
+            if unit == 'h':
+                return timedelta(hours=value)
+            elif unit == 'd':
+                return timedelta(days=value)
+            elif unit == 'w':
+                return timedelta(weeks=value)
+            else:
+                raise ValueError("Invalid period unit. Use h (hours), d (days), or w (weeks).")
+        except (ValueError, TypeError):
+            raise ValueError("Invalid period format. Use <number><unit> (e.g., 1h, 1d, 1w).")
 
     def get_system_info(self, verbose=False):
         return {
@@ -385,10 +404,17 @@ class SystemInfo:
         with open(self.history_file, "w") as f:
             json.dump(history, f, indent=2)
 
-    def get_history_info(self):
+    def get_history_info(self, period=None):
         try:
             with open(self.history_file, "r") as f:
                 history = json.load(f)
+            if period:
+                period_delta = self.parse_period(period)
+                cutoff = datetime.now() - period_delta
+                history = [
+                    record for record in history
+                    if "Timestamp" in record and datetime.strptime(record["Timestamp"], "%Y-%m-%d %H:%M:%S") >= cutoff
+                ]
             return history if history else [{"Status": "No history data available"}]
         except (json.JSONDecodeError, FileNotFoundError) as e:
             return [{"Status": f"Error reading history data: {str(e)}"}]
@@ -399,3 +425,61 @@ class SystemInfo:
                 json.dump([], f)
         except Exception as e:
             print(f"Error clearing history: {str(e)}")
+
+    def prune_history(self, period):
+        try:
+            with open(self.history_file, "r") as f:
+                history = json.load(f)
+            period_delta = self.parse_period(period)
+            cutoff = datetime.now() - period_delta
+            original_len = len(history)
+            history = [
+                record for record in history
+                if "Timestamp" in record and datetime.strptime(record["Timestamp"], "%Y-%m-%d %H:%M:%S") >= cutoff
+            ]
+            with open(self.history_file, "w") as f:
+                json.dump(history, f, indent=2)
+            return original_len - len(history)
+        except (json.JSONDecodeError, FileNotFoundError, ValueError) as e:
+            print(f"Error pruning history: {str(e)}")
+            return 0
+        
+    def get_trends_info(self, period=None):
+        try:
+            history = self.get_history_info(period)
+            if not history or isinstance(history[0], dict) and "Status" in history[0]:
+                return {"Status": history[0]["Status"]}
+            
+            metrics = {
+                "CPU Usage (%)": [],
+                "Memory Usage (%)": [],
+                "Disk Usage (%)": [],
+                "Network Bandwidth Sent (MB/s)": [],
+                "Network Bandwidth Received (MB/s)": []
+            }
+
+            for record in history:
+                for metric in metrics:
+                    if metric in record:
+                        metrics[metric].append(float(record[metric]))
+
+            trends = {}
+            for metric, values in metrics.items():
+                if values:
+                    trends[metric] = {
+                        "Average": round(sum(values) / len(values), 2),
+                        "Minimum": round(min(values), 2),
+                        "Maximum": round(max(values), 2),
+                        "Standard Deviation": round(float(np.std(values)), 2) if len(values) > 1 else 0.0
+                    }
+                else:
+                    trends[metric] = {
+                        "Average": 0.0,
+                        "Minimum": 0.0,
+                        "Maximum": 0.0,
+                        "Standard Deviation": 0.0
+                    }
+
+            return trends
+        except Exception as e:
+            return {"Status": f"Error computing trends: {str(e)}"}

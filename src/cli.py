@@ -1,14 +1,14 @@
 import argparse
 import time
 from .system_info import SystemInfo
-from .utils import print_formatted, print_process_table, print_json, clear_screen, send_notification
+from .utils import print_formatted, print_process_table, print_json, clear_screen, send_notification, print_trends_table
 
 class OSPeekCLI:
     def __init__(self):
-        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.1.6")
+        self.parser = argparse.ArgumentParser(description="OSPeek CLI v0.1.7")
         self.parser.add_argument(
             "command",
-            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "services", "logs", "alerts", "network-stats", "summary", "history", "version", "help"],
+            choices=["info", "disk", "network", "processes", "uptime", "users", "battery", "temperature", "fan", "services", "logs", "alerts", "network-stats", "summary", "history", "trends", "version", "help"],
             help="Command to execute",
             nargs="?",
             default="help",
@@ -70,6 +70,14 @@ class OSPeekCLI:
             action="store_true",
             help="Clear historical metrics (for history command)"
         )
+        self.parser.add_argument(
+            "--prune",
+            help="Remove historical records older than specified period (e.g., 1h, 1d, 1w) (for history command)",
+        )
+        self.parser.add_argument(
+            "--period",
+            help="Filter historical data by time period (e.g., 1h 1d 1w) (for history, trends commands)"
+        )
 
     def run(self, args):
         args = self.parser.parse_args(args)
@@ -102,7 +110,9 @@ class OSPeekCLI:
         elif args.command == "summary":
             self.show_summary(args.json, args.watch, args.detailed)
         elif args.command == "history":
-            self.show_history(args.json, args.count, args.clear)
+            self.show_history(args.json, args.count, args.clear, args.prune, args.period)
+        elif args.command == "trends":
+            self.show_trends(args.json, args.period)
         elif args.command == "version":
             self.show_version(args.json)
         else:
@@ -355,13 +365,17 @@ class OSPeekCLI:
                 else:
                     print_formatted("System Summary", summary_info)
 
-    def show_history(self, json_output, count, clear):
+    def show_history(self, json_output, count, clear, prune, period):
         sys_info = SystemInfo()
         if clear:
             sys_info.clear_history()
             print("History cleared successfully.")
             return
-        history_info = sys_info.get_history_info()
+        if prune:
+            removed_count = sys_info.prune_history(prune)
+            print(f"Pruned historical records older that {prune}. {removed_count} records removed.")
+            return
+        history_info = sys_info.get_history_info(period)
         if count > 0:
             history_info = history_info[-count:]
         if json_output:
@@ -372,6 +386,18 @@ class OSPeekCLI:
             else:
                 for record in history_info:
                     print_formatted(f"Timestamp: {record['Timestamp']}", record)
+
+    def show_trends(self, json_output, period):
+        sys_info = SystemInfo()
+        trends_info = sys_info.get_trends_info(period)
+        if json_output:
+            print_json(trends_info)
+        else:
+            if trends_info.get("Status"):
+                print_formatted("System Metric Trends", {"Status": trends_info["Status"]})
+            else:
+                title = f"System Metric Trends ({period})" if period else "System Metric Trends"
+                print_trends_table(title, trends_info)
 
     def parse_thresholds(self, threshold_str):
         defaults = {"cpu": 80.0, "memory": 85.0, "disk": 90.0}

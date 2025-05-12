@@ -36,6 +36,16 @@ def print_process_table(title, processes, verbose=False):
                 print(f"{proc['PID']:<10} {proc['Name'][:19]:<20} {proc['CPU (%)']:<10.2f} {proc['Memory (MB)']:<12.2f}")
     print("-" * 50)
 
+def print_trends_table(title, trends):
+    print(f"\n{title}:")
+    print("-" * 50)
+    header = f"{'Metric':<28} | {'Avg':<6} | {'Min':<6} | {'Max':<6} | {'Std Dev':<8}"
+    print(header)
+    print("-" * 50)
+    for metric, stats in trends.items():
+        print(f"{metric:<28} | {stats['Average']:<6.2f} | {stats['Minimum']:<6.2f} | {stats['Maximum']:<6.2f} | {stats['Standard Deviation']:<8.2f}")
+    print("-" * 50)
+
 def print_json(data):
     print(json.dumps(data, indent=2))
 
