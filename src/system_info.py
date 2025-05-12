@@ -123,7 +123,7 @@ class SystemInfo:
         return processes[:10] if processes else [{"Status": "No matching processes found"}]
 
     def get_uptime_info(self):
-        boot_time = datetime.datetime.fromtimestamp(psutil.boot_time())
+        boot_time = datetime.fromtimestamp(psutil.boot_time())
         uptime_seconds = (datetime.datetime.now() - boot_time).total_seconds()
         days = int(uptime_seconds // (24 * 3600))
         hours = int((uptime_seconds % (24 * 3600)) // 3600)
@@ -141,7 +141,7 @@ class SystemInfo:
                 "Username": user.name,
                 "Terminal": user.terminal or "N/A",
                 "Host": user.host or "localhost",
-                "Logic Time": datetime.datetime.fromtimestamp(user.started).strftime("%Y-%m-%d %H:%M:%S")
+                "Logic Time": datetime.fromtimestamp(user.started).strftime("%Y-%m-%d %H:%M:%S")
             }
             if verbose:
                 user_info["PID"] = user.pid if user.pid else "N/A"
@@ -390,7 +390,7 @@ class SystemInfo:
         except (json.JSONDecodeError, FileNotFoundError):
             history = []
 
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         record = {
             "Timestamp": timestamp,
             "CPU Usage (%)": cpu_usage,
